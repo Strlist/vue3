@@ -1,6 +1,6 @@
 import Mock from 'mockjs';
 import qs from 'query-string';
-import setupMock, { successResponseWrap } from '@/utils/setup-mock';
+import setupMock, {failResponseWrap, successResponseWrap} from '@/utils/setup-mock';
 import type { GetParams } from '@/types/global';
 import {MockParams} from "@/types/mock.ts";
 
@@ -55,32 +55,42 @@ setupMock({
             });
         });
         Mock.mock(new RegExp('/api/goods/save'), (params: MockParams) => {
-            const requestParams = JSON.parse(params.body)
-            if(requestParams.id){
-                // 修改
-                data.list.forEach((item:any,index:number)=>{
-                    if (item.id===requestParams.id){
-                        data.list[index].name=requestParams.name
-                        data.list[index].stockpile=requestParams.stockpile
-                        return
-                    }
-                })
-            }else{
-                //添加
-                data.list.push({
-                    id:uuid(),
-                    inboundTime: new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '').substring(0, 19),
-                    name:requestParams.name,
-                    stockpile:requestParams.stockpile
-                })
+            try{
+                const requestParams = JSON.parse(params.body)
+                if(requestParams.id){
+                    // 修改
+                    data.list.forEach((item:any,index:number)=>{
+                        if (item.id===requestParams.id){
+                            data.list[index].name=requestParams.name
+                            data.list[index].stockpile=requestParams.stockpile
+                            return
+                        }
+                    })
+                }else{
+                    //添加
+                    data.list.push({
+                        id:uuid(),
+                        inboundTime: new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '').substring(0, 19),
+                        name:requestParams.name,
+                        stockpile:requestParams.stockpile
+                    })
+                }
+                return successResponseWrap(null);
+            }catch (err){
+                return failResponseWrap(null,"处理数据异常",50000)
             }
         });
         Mock.mock(new RegExp('/api/goods/delete'), (params: MockParams) => {
-            const result = qs.parseUrl(params.url).query;
-            const queryParamId = result.id
-            data.list = data.list.filter((item:any)=>{
-                return item.id!==queryParamId
-            })
+            try{
+                const result = qs.parseUrl(params.url).query;
+                const queryParamId = result.id
+                data.list = data.list.filter((item:any)=>{
+                    return item.id!==queryParamId
+                })
+                return successResponseWrap(null);
+            }catch (err){
+                return failResponseWrap(null,"处理数据异常",50000)
+            }
         });
     }
 });
